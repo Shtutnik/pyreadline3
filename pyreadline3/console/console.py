@@ -795,7 +795,8 @@ HOOKFUNC23 = CFUNCTYPE(c_char_p, c_void_p, c_void_p, c_char_p)
 
 readline_hook = None  # the python hook goes here
 readline_ref = None  # reference to the c-callable to keep it alive
-
+orig_PyOS_RFP_value = None
+readline_PyOS_RFP_value = None
 
 def hook_wrapper_23(stdin, stdout, prompt):
     '''Wrap a Python readline so it behaves like GNU readline.'''
@@ -825,7 +826,7 @@ def hook_wrapper_23(stdin, stdout, prompt):
 def install_readline(hook):
     '''Set up things for the interpreter to call
     our function like GNU readline.'''
-    global readline_hook, readline_ref
+    global readline_hook, readline_ref, orig_PyOS_RFP_value
     # save the hook so the wrapper can call it
     readline_hook = hook
     # get the address of PyOS_ReadlineFunctionPointer so we can update it
@@ -837,9 +838,27 @@ def install_readline(hook):
     readline_ref = HOOKFUNC23(hook_wrapper_23)
     # get the address of the function
     func_start = c_void_p.from_address(addressof(readline_ref)).value
+    orig_PyOS_RFP_value = PyOS_RFP.value
     # write the function address into PyOS_ReadlineFunctionPointer
     PyOS_RFP.value = func_start
 
+def uninstall_readline():
+    global readline_PyOS_RFP_value
+    # get the address of PyOS_ReadlineFunctionPointer so we can update it
+    PyOS_RFP = c_void_p.from_address(
+        Console.GetProcAddress(
+            sys.dllhandle,
+            "PyOS_ReadlineFunctionPointer".encode('ascii')))
+    readline_PyOS_RFP_value = PyOS_RFP.value
+    PyOS_RFP.value = orig_PyOS_RFP_value
+
+def reinstall_readline():
+    # get the address of PyOS_ReadlineFunctionPointer so we can update it
+    PyOS_RFP = c_void_p.from_address(
+        Console.GetProcAddress(
+            sys.dllhandle,
+            "PyOS_ReadlineFunctionPointer".encode('ascii')))
+    PyOS_RFP.value = readline_PyOS_RFP_value
 
 if __name__ == '__main__':
     import sys

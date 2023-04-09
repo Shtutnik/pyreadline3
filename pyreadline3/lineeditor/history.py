@@ -94,14 +94,17 @@ class LineHistory(object):
             self.history_cursor = 0
 
     def write_history_file(self, filename=None):
-        '''Save a readline history file.'''
-        if filename is None:
-            filename = self.history_filename
-        fp = open(filename, 'wb')
-        for line in self.history[-self.history_length:]:
-            fp.write(ensure_str(line.get_line_text()))
-            fp.write('\n'.encode('ascii'))
-        fp.close()
+        try:
+            '''Save a readline history file.'''
+            if filename is None:
+                filename = self.history_filename
+            fp = open(filename, 'wb')
+            for line in self.history[-self.history_length:]:
+                fp.write(ensure_str(line.get_line_text()))
+                fp.write('\n'.encode('ascii'))
+            fp.close()
+        except KeyboardInterrupt:
+            pass
 
     def add_history(self, line):
         '''Append a line to the history buffer, as if it was the last line typed.'''
